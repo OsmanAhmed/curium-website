@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Curium — Crowd analytics that work with the cameras you already have</title>
+<meta name="description" content="Multimodal sensor fusion for real-time spatial intelligence. Camera-first, LiDAR-augmented, privacy-preserving. Production-proven with KONE and across Asia.">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="shortcut icon" href="assets/favicon-256.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..700&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #0a0a14;
+  --bg-elevated: #14141f;
+  --bg-card: #181826;
+  --border: #22223a;
+  --border-strong: #2e2e4a;
+  --text: #eaeaf2;
+  --text-muted: #9090a8;
+  --text-dim: #6a6a82;
+  --magenta: #e7449b;
+  --magenta-soft: rgba(231, 68, 155, 0.12);
+  --cyan: #4dd4f0;
+  --cyan-soft: rgba(77, 212, 240, 0.12);
+  --gradient: linear-gradient(135deg, #6442d6 0%, #e7449b 100%);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Background atmosphere */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0; right: 0; height: 100vh;
+  background:
+    radial-gradient(ellipse 80% 50% at 80% 0%, rgba(100, 66, 214, 0.15), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 10% 30%, rgba(231, 68, 155, 0.08), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Grain texture */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: overlay;
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 32px;
+  position: relative;
+  z-index: 2;
+}
+
+/* ===== NAV ===== */
+nav {
+  position: sticky;
+  top: 0;
+  background: rgba(10, 10, 20, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--border);
+  z-index: 100;
+  padding: 18px 0;
+}
+
+nav .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-logo img { height: 38px; display: block; }
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.nav-links { display: flex; gap: 36px; align-items: center; }
+.nav-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--text); }
+
+.btn-primary {
+  background: var(--gradient);
+  color: white;
+  padding: 11px 22px;
+  border-radius: 100px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: transform 0.15s, box-shadow 0.2s;
+  display: inline-block;
+  white-space: nowrap;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(231, 68, 155, 0.3);
+}
+
+.btn-ghost {
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  padding: 10px 22px;
+  border-radius: 100px;
+  font-size: 14px;
+  text-decoration: none;
+  display: inline-block;
+  transition: border-color 0.2s, background 0.2s;
+}
+.btn-ghost:hover { border-color: var(--magenta); background: var(--magenta-soft); }
+
+/* ===== HERO ===== */
+.hero {
+  padding: 100px 0 80px;
+  position: relative;
+}
+
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--magenta);
+  margin-bottom: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.eyebrow::before {
+  content: "";
+  width: 24px;
+  height: 1px;
+  background: var(--magenta);
+  display: inline-block;
+}
+
+.hero h1 {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(40px, 6vw, 76px);
+  font-weight: 350;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  font-variation-settings: "opsz" 144;
+  margin-bottom: 28px;
+  max-width: 14ch;
+}
+
+.hero h1 em {
+  font-style: italic;
+  font-weight: 300;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-sub {
+  font-size: 19px;
+  color: var(--text-muted);
+  max-width: 580px;
+  margin-bottom: 40px;
+  line-height: 1.55;
+}
+
+.hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+
+.hero-visual {
+  margin-top: 80px;
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  box-shadow:
+    0 60px 120px -30px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.hero-visual img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.hero-visual-caption {
+  position: absolute;
+  bottom: 20px;
+  left: 24px;
+  background: rgba(10, 10, 20, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-strong);
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--text);
+}
+
+.hero-visual-caption .pulse {
+  width: 7px;
+  height: 7px;
+  background: var(--cyan);
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+  animation: pulse 2s infinite;
+  box-shadow: 0 0 8px var(--cyan);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ===== TRUST STRIP ===== */
+.trust {
+  padding: 60px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-top: 80px;
+}
+
+.trust-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.trust-logos {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 60px;
+  flex-wrap: wrap;
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 400;
+  font-variation-settings: "opsz" 100;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.trust-logos span { transition: color 0.2s; }
+.trust-logos span:hover { color: var(--text); }
+
+/* ===== SECTIONS ===== */
+section.content {
+  padding: 120px 0;
+  position: relative;
+}
+
+.section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-label::before {
+  content: "";
+  width: 28px;
+  height: 1px;
+  background: var(--border-strong);
+}
+
+h2 {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(34px, 4.5vw, 54px);
+  font-weight: 350;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  font-variation-settings: "opsz" 144;
+  margin-bottom: 24px;
+  max-width: 18ch;
+}
+
+h2 em {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--magenta);
+}
+
+.section-intro {
+  color: var(--text-muted);
+  font-size: 19px;
+  max-width: 620px;
+  margin-bottom: 64px;
+  line-height: 1.55;
+}
+
+/* ===== WEDGE SECTION ===== */
+.wedge {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.wedge-text h2 { margin-bottom: 32px; }
+
+.wedge-points {
+  list-style: none;
+  margin-top: 36px;
+}
+
+.wedge-points li {
+  padding: 18px 0;
+  border-top: 1px solid var(--border);
+  font-size: 16px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+}
+
+.wedge-points li:last-child { border-bottom: 1px solid var(--border); }
+
+.wedge-points .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--magenta);
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.wedge-points strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.wedge-visual {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  background: #000;
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.7);
+}
+
+.wedge-visual img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.wedge-visual::after {
+  content: "Live: camera detection + LiDAR fusion + dashboard";
+  position: absolute;
+  bottom: 14px;
+  right: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text);
+  background: rgba(10, 10, 20, 0.85);
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  backdrop-filter: blur(10px);
+}
+
+/* ===== CAPABILITIES ===== */
+.capabilities {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.cap-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 36px 32px 32px;
+  transition: border-color 0.3s, transform 0.3s;
+}
+
+.cap-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
+
+.cap-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--magenta-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+  color: var(--magenta);
+}
+
+.cap-icon svg { width: 22px; height: 22px; }
+
+.cap-card h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin-bottom: 14px;
+}
+
+.cap-card p {
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* ===== CASE STUDIES ===== */
+.cases {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.case-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.3s, transform 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+
+.case-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
+
+.case-image {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: #000;
+  position: relative;
+}
+
+.case-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.case-meta {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: rgba(10, 10, 20, 0.85);
+  color: var(--text);
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-strong);
+  backdrop-filter: blur(10px);
+}
+
+.case-body { padding: 26px 28px 30px; flex: 1; display: flex; flex-direction: column; }
+
+.case-body h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+  line-height: 1.25;
+}
+
+.case-customer {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--magenta);
+  letter-spacing: 0.06em;
+  margin-bottom: 14px;
+}
+
+.case-body p {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.case-stats {
+  display: flex;
+  gap: 24px;
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+
+.case-stat { flex: 1; }
+.case-stat .num {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--text);
+  display: block;
+  letter-spacing: -0.01em;
+}
+.case-stat .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* ===== HOW IT WORKS ===== */
+.how {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.how-steps { list-style: none; counter-reset: step; }
+.how-steps li {
+  counter-increment: step;
+  padding: 26px 0;
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 24px;
+  align-items: baseline;
+}
+.how-steps li:last-child { border-bottom: 1px solid var(--border); }
+
+.how-steps li::before {
+  content: counter(step, decimal-leading-zero);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  color: var(--magenta);
+  letter-spacing: 0.05em;
+}
+
+.how-steps h4 {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 400;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+.how-steps p { color: var(--text-muted); font-size: 15px; line-height: 1.55; }
+
+.how-visual {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+}
+
+.how-visual img { width: 100%; height: auto; display: block; }
+
+/* ===== TEAM ===== */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  max-width: 800px;
+}
+
+.team-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 32px;
+}
+
+.team-card .role {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--magenta);
+  margin-bottom: 12px;
+}
+
+.team-card h4 {
+  font-family: 'Fraunces', serif;
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  margin-bottom: 14px;
+}
+
+.team-card p {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* ===== TEAM PHOTOS ===== */
+.team-card {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.team-photo {
+  flex-shrink: 0;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+}
+
+.team-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.team-card-body { flex: 1; }
+
+/* ===== FORM ===== */
+.reg-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  max-width: 560px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.reg-form .full { grid-column: 1 / -1; }
+
+.reg-form label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.reg-form input,
+.reg-form textarea {
+  width: 100%;
+  background: rgba(10, 10, 20, 0.6);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 13px 16px;
+  color: var(--text);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 15px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.reg-form input:focus,
+.reg-form textarea:focus {
+  outline: none;
+  border-color: var(--magenta);
+  background: rgba(10, 10, 20, 0.85);
+}
+
+.reg-form textarea {
+  resize: vertical;
+  min-height: 90px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+.reg-form button {
+  background: var(--gradient);
+  color: white;
+  padding: 13px 22px;
+  border-radius: 100px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: transform 0.15s, box-shadow 0.2s;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  margin-top: 8px;
+}
+
+.reg-form button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(231, 68, 155, 0.3);
+}
+
+.reg-form button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.form-success {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.form-success svg {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 24px;
+  display: block;
+  color: var(--magenta);
+}
+
+.form-success h2 { margin: 0 auto 14px; }
+.form-success p { color: var(--text-muted); max-width: 420px; margin: 0 auto; }
+
+.form-error {
+  grid-column: 1 / -1;
+  color: var(--magenta);
+  font-size: 14px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+/* ===== CTA ===== */
+.cta-section {
+  padding: 120px 0;
+  position: relative;
+}
+
+.cta-box {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  padding: 80px 60px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-box::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 80% at 50% 100%, rgba(231, 68, 155, 0.18), transparent 70%),
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(100, 66, 214, 0.12), transparent 70%);
+  pointer-events: none;
+}
+
+.cta-box > * { position: relative; z-index: 1; }
+
+.cta-box h2 {
+  margin: 0 auto 24px;
+  text-align: center;
+  max-width: 22ch;
+}
+
+.cta-box p {
+  color: var(--text-muted);
+  max-width: 480px;
+  margin: 0 auto 36px;
+  font-size: 17px;
+}
+
+.cta-meta {
+  margin-top: 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+}
+
+/* ===== FOOTER ===== */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 40px 0;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+footer .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+footer a { color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+footer a:hover { color: var(--text); }
+
+footer .footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+footer .footer-mark {
+  height: 22px;
+  opacity: 0.55;
+  display: block;
+}
+
+footer .links { display: flex; gap: 28px; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  .wedge, .how { grid-template-columns: 1fr; gap: 48px; }
+  .capabilities { grid-template-columns: 1fr; }
+  .cases { grid-template-columns: 1fr; }
+  .team-grid { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+  section.content { padding: 80px 0; }
+  .cta-box { padding: 60px 32px; }
+}
+
+@media (max-width: 640px) {
+  .container { padding: 0 20px; }
+  .hero { padding: 60px 0 40px; }
+  .hero h1 { font-size: 40px; }
+  .trust-logos { gap: 28px; font-size: 18px; }
+  .case-stats { gap: 16px; }
+  .case-stat .num { font-size: 18px; }
+  .reg-form { grid-template-columns: 1fr; }
+  .team-card { flex-direction: column; align-items: center; text-align: center; }
+}
+
+/* ===== ENTRY ANIMATIONS ===== */
+.fade-up {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.45s; }
+.delay-5 { animation-delay: 0.6s; }
+
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="container">
+    <a href="#" class="nav-logo">
+      <img src="assets/curium-logo-white.png" alt="Curium">
+    </a>
+    <div class="nav-links">
+      <a href="#product">Product</a>
+      <a href="#cases">Case Studies</a>
+      <a href="#how">How It Works</a>
+      <a href="#team">Company</a>
+    </div>
+    <a href="#contact" class="btn-primary">Book a 20-min walkthrough</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow fade-up">Multimodal spatial intelligence</div>
+    <h1 class="fade-up delay-1">Crowd analytics that work with the <em>cameras you already have</em></h1>
+    <p class="hero-sub fade-up delay-2">
+      Most LiDAR-only systems force you to deploy expensive sensors across every square metre.
+      Curium fuses your existing cameras with strategically-placed LiDAR — delivering
+      centimeter-accurate, privacy-preserving people and vehicle tracking at a fraction of the cost.
+    </p>
+    <div class="hero-ctas fade-up delay-3">
+      <a href="#contact" class="btn-primary">Book a 20-min walkthrough</a>
+      <a href="#cases" class="btn-ghost">See it deployed</a>
+    </div>
+
+    <div class="hero-visual fade-up delay-4">
+      <img src="assets/cutrack-admin-ui.jpg" alt="CuTrack live admin dashboard showing real-time occupancy and tracking">
+      <div class="hero-visual-caption">
+        <span class="pulse"></span>LIVE — Digital twin in operation
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST -->
+<div class="trust">
+  <div class="container">
+    <div class="trust-label">Production deployments with</div>
+    <div class="trust-logos">
+      <span>KONE</span>
+      <span>Singapore Expo</span>
+      <span>Brussels Airport</span>
+      <span>Brick &amp; Mortar AI</span>
+      <span>Leading European retailer</span>
+    </div>
+  </div>
+</div>
+
+<!-- WEDGE -->
+<section class="content" id="product">
+  <div class="container">
+    <div class="wedge">
+      <div class="wedge-text">
+        <div class="section-label">The product — CuTrack</div>
+        <h2>LiDAR-grade analytics, <em>without the LiDAR-grade bill</em></h2>
+        <p class="section-intro">
+          CuTrack pairs your existing CCTV with LiDAR placed only where you need centimeter precision.
+          Cameras handle re-identification across zones. LiDAR provides anonymous 3D ground truth.
+          Together they deliver insights neither sensor can produce alone.
+        </p>
+        <ul class="wedge-points">
+          <li>
+            <span class="num">01</span>
+            <span><strong>Use your existing cameras.</strong> No rip-and-replace. CuTrack ingests CCTV
+            feeds and runs person re-identification across the existing network.</span>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <span><strong>Add LiDAR only where it matters.</strong> Entrances, queue zones, and
+            high-occlusion areas get 3D ground truth. The rest stays camera-driven.</span>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <span><strong>Privacy by design.</strong> Anonymous tracking, GDPR/PDPA-compliant, no
+            biometric profiling. We track behaviour patterns — not identities.</span>
+          </li>
+          <li>
+            <span class="num">04</span>
+            <span><strong>Real-time spatial intelligence.</strong> Live dashboards, journey times,
+            queue analytics, dwell time, and digital twins of any monitored space.</span>
+          </li>
+        </ul>
+      </div>
+      <div class="wedge-visual">
+        <img src="assets/engineers-deployment.jpg" alt="Curium engineers reviewing point-cloud data on site">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CAPABILITIES -->
+<section class="content">
+  <div class="container">
+    <div class="section-label">Capabilities</div>
+    <h2>Built for sites where <em>every metre matters</em></h2>
+    <p class="section-intro">
+      Trained on real deployments at transit hubs, exhibition halls, and retail floors.
+      Engineered for the messy reality of mixed-sensor environments.
+    </p>
+
+    <div class="capabilities">
+      <div class="cap-card">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+          </svg>
+        </div>
+        <h3>Multimodal re-identification</h3>
+        <p>Track the same anonymous person across cameras, LiDARs, and zones —
+          even when each sensor only sees part of their journey. Cross-sensor fusion is
+          the core of CuTrack.</p>
+      </div>
+
+      <div class="cap-card">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 9h18M9 3v18"/>
+          </svg>
+        </div>
+        <h3>Live digital twins</h3>
+        <p>Real-time 3D representation of any monitored space — train stations,
+          retail floors, event halls, airports. Used by KONE to power the Helsinki
+          Central Station digital twin showcased at AWS&nbsp;re:Invent.</p>
+      </div>
+
+      <div class="cap-card">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 2L4 7v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V7l-8-5z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+        </div>
+        <h3>Privacy-preserving by design</h3>
+        <p>Anonymous tracking IDs, no facial recognition, no demographic inference.
+          Built GDPR-compliant from day one. We give you operational intelligence
+          without retaining personal data.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CASE STUDIES -->
+<section class="content" id="cases">
+  <div class="container">
+    <div class="section-label">Case Studies</div>
+    <h2>Deployed at the places where <em>crowd flow is the business</em></h2>
+
+    <div class="cases">
+
+      <div class="case-card">
+        <div class="case-image">
+          <span class="case-meta">Transit</span>
+          <img src="assets/cutrack-pointcloud-clean.jpg" alt="Curium point-cloud tracking output">
+        </div>
+        <div class="case-body">
+          <div class="case-customer">KONE — Helsinki, Finland</div>
+          <h3>Helsinki Central Station digital twin</h3>
+          <p>Real-time people identification, monitoring, and tracking across the station.
+            Curium's perception layer powers KONE's live station dashboard, showcased at
+            AWS re:Invent — the same engine shown here tracking crowds in point-cloud space.</p>
+          <div class="case-stats">
+            <div class="case-stat">
+              <span class="num">Live</span>
+              <span class="label">Occupant count</span>
+            </div>
+            <div class="case-stat">
+              <span class="num">5</span>
+              <span class="label">Station zones</span>
+            </div>
+            <div class="case-stat">
+              <span class="num">24/7</span>
+              <span class="label">Operation</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="case-card">
+        <div class="case-image">
+          <span class="case-meta">Events</span>
+          <img src="assets/expo-pointcloud-tracking.jpg" alt="Singapore Expo crowd tracking">
+        </div>
+        <div class="case-body">
+          <div class="case-customer">Singapore Expo @ Changi</div>
+          <h3>Multi-day exhibition tracking with VIP re-ID</h3>
+          <p>Integration with registration kiosks, VIP identification on arrival,
+            and re-identification of the same attendees across multiple days.
+            Deployed for MICE events and the annual New Year's Eve countdown crowd,
+            with real-time analytics and post-event reports.</p>
+          <div class="case-stats">
+            <div class="case-stat">
+              <span class="num">2,500</span>
+              <span class="label">m² coverage</span>
+            </div>
+            <div class="case-stat">
+              <span class="num">14</span>
+              <span class="label">Sensors fused</span>
+            </div>
+            <div class="case-stat">
+              <span class="num">Multi-day</span>
+              <span class="label">Re-identification</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="case-card">
+        <div class="case-image">
+          <span class="case-meta">Retail</span>
+          <img src="assets/queue-analytics.jpg" alt="Queue analytics in a retail setting">
+        </div>
+        <div class="case-body">
+          <div class="case-customer">Leading European retailer</div>
+          <h3>Camera-driven queue &amp; footfall analytics</h3>
+          <p>Person detection and queue analytics from existing CCTV. Real-time wait
+            time monitoring, bottleneck detection, and journey analysis across stores —
+            with no new camera deployment required.</p>
+          <div class="case-stats">
+            <div class="case-stat">
+              <span class="num">Existing</span>
+              <span class="label">CCTV reused</span>
+            </div>
+            <div class="case-stat">
+              <span class="num">Real-time</span>
+              <span class="label">Queue counts</span>
+            </div>
+            <div class="case-stat">
+              <span class="num">Anon.</span>
+              <span class="label">Tracking</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="content" id="how">
+  <div class="container">
+    <div class="how">
+      <div>
+        <div class="section-label">How it works</div>
+        <h2>Deploy in <em>weeks</em>, not quarters</h2>
+        <p class="section-intro">
+          CuTrack is sensor-agnostic. We work with the cameras and infrastructure
+          you have — and add LiDAR strategically where 3D ground truth changes the answer.
+        </p>
+        <ul class="how-steps">
+          <li>
+            <div>
+              <h4>Connect existing cameras</h4>
+              <p>Plug into your CCTV network. CuTrack runs person detection
+                and re-identification across every feed, no hardware changes required.</p>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h4>Add LiDAR where it matters</h4>
+              <p>Entrances, queue zones, and complex multi-level spaces get LiDAR
+                augmentation for centimeter-accurate ground truth.</p>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h4>Calibrate automatically</h4>
+              <p>Our patented multimodal calibration fuses every sensor into a single
+                spatial reference frame — automatically, without manual surveying.</p>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h4>Get insights, live</h4>
+              <p>Dashboards, alerts, digital twins, and API access to every datapoint.
+                Integrate into your existing operations platform via webhook or REST.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="how-visual">
+        <img src="assets/curium-lidar-installed.jpg" alt="Curium-branded LiDAR sensor deployed in field">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section class="content" id="team">
+  <div class="container">
+    <div class="section-label">Company</div>
+    <h2>Built by <em>perception specialists</em></h2>
+    <p class="section-intro">
+      Curium emerged from autonomous-systems research at the National University of Singapore.
+      The team has been building real-time multimodal sensor fusion since 2020.
+    </p>
+
+    <div class="team-grid">
+      <div class="team-card">
+        <div class="team-photo">
+          <img src="assets/founder-ali.jpg" alt="Dr. Ali Hasnain">
+        </div>
+        <div class="team-card-body">
+          <div class="role">CEO &amp; Co-founder</div>
+          <h4>Dr. Ali Hasnain</h4>
+          <p>PhD from the National University of Singapore. Serial entrepreneur with
+            expertise in robotics, opto-electronics, and optical sensing. Previously built
+            autonomous-vehicle calibration systems deployed across Southeast Asia.</p>
+        </div>
+      </div>
+      <div class="team-card">
+        <div class="team-photo">
+          <img src="assets/founder-osman.jpg" alt="Osman Ahmed">
+        </div>
+        <div class="team-card-body">
+          <div class="role">COO &amp; Co-founder</div>
+          <h4>Osman Ahmed</h4>
+          <p>Product design and management leader who has launched telecom and cloud
+            services across APAC. Brings deep network technology, cloud architecture,
+            and regulatory expertise to Curium's deployments.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="contact">
+  <div class="container">
+    <div class="cta-box" id="cta-content">
+      <div class="section-label" style="justify-content: center; margin: 0 auto 16px; display: inline-flex;">Get started</div>
+      <h2>See <em>your</em> space, live, in 20 minutes</h2>
+      <p>We'll walk you through a real deployment — the KONE Helsinki digital twin,
+        Singapore Expo multi-day re-identification, or a retail floor running on existing CCTV.
+        Tell us a little about your space and we'll show you what CuTrack would surface.</p>
+
+      <form class="reg-form" id="walkthrough-form" action="https://script.google.com/macros/s/AKfycbyg_lXjcJQNFEbNeQXPdnKMzhR9cOxHdmh4RcKhASbJW6kFYG3iaqxLJzQ7AyCuk6U2/exec" onsubmit="return submitWalkthroughForm(event)">
+        <div>
+          <label for="f-name">Name</label>
+          <input type="text" id="f-name" name="name" required autocomplete="name">
+        </div>
+        <div>
+          <label for="f-email">Work email</label>
+          <input type="email" id="f-email" name="email" required autocomplete="email">
+        </div>
+        <div>
+          <label for="f-company">Company</label>
+          <input type="text" id="f-company" name="company" required autocomplete="organization">
+        </div>
+        <div>
+          <label for="f-role">Role <span style="text-transform:none; letter-spacing:0; color:var(--text-dim)">(optional)</span></label>
+          <input type="text" id="f-role" name="role" autocomplete="organization-title">
+        </div>
+        <div class="full">
+          <label for="f-message">What would you like to see? <span style="text-transform:none; letter-spacing:0; color:var(--text-dim)">(optional)</span></label>
+          <textarea id="f-message" name="message" placeholder="Site type, square metres, existing camera infrastructure, timeline..."></textarea>
+        </div>
+        <div class="full" style="text-align: center;">
+          <button type="submit" id="f-submit">Request walkthrough</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<script>
+async function submitWalkthroughForm(e) {
+  e.preventDefault();
+  const form = document.getElementById('walkthrough-form');
+  const btn = document.getElementById('f-submit');
+  const btnText = btn.textContent;
+  btn.textContent = 'Sending...';
+  btn.disabled = true;
+
+  // Remove any prior error
+  const oldErr = form.querySelector('.form-error');
+  if (oldErr) oldErr.remove();
+
+  const data = {
+    name: form.name.value.trim(),
+    email: form.email.value.trim(),
+    company: form.company.value.trim(),
+    role: form.role.value.trim(),
+    message: form.message.value.trim(),
+    submittedAt: new Date().toISOString(),
+    source: 'curium.sg'
+  };
+
+  try {
+    // no-cors mode means we can't read the response, but the request goes through.
+    // This is the standard pattern for Google Apps Script web app endpoints from a static page.
+    await fetch(form.action, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(data)
+    });
+
+    document.getElementById('cta-content').innerHTML = `
+      <div class="form-success">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+        <h2 style="text-align:center;">Thanks — we'll be in touch within 24 hours</h2>
+        <p>One of the founders will reach out to schedule your walkthrough. In the meantime, feel free to reply directly to the confirmation if you have anything to add.</p>
+      </div>
+    `;
+  } catch (err) {
+    btn.textContent = btnText;
+    btn.disabled = false;
+    const errDiv = document.createElement('div');
+    errDiv.className = 'form-error';
+    errDiv.innerHTML = 'Something went wrong. Please email <a href="mailto:contact@curium.sg" style="color:inherit;text-decoration:underline;">contact@curium.sg</a> directly.';
+    form.appendChild(errDiv);
+  }
+
+  return false;
+}
+</script>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-brand">
+      <img src="assets/curium-infinity-white.png" alt="Curium" class="footer-mark">
+      <span>© 2026 Curium Pte Ltd · 77 Ayer Rajah Crescent #01-21, Singapore 139954</span>
+    </div>
+    <div class="links">
+      <a href="https://www.linkedin.com/company/curiumsg/" target="_blank" rel="noopener">LinkedIn</a>
+      <a href="mailto:contact@curium.sg">contact@curium.sg</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
